@@ -2,6 +2,8 @@
 # used for testing.
 
 listen: 127.0.0.1:1080
+algorithm:
+  name: linear-scan
 servers:
   duck-vultr-jp1:
     address: jp1.ducksoft.example.com:1145
