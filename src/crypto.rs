@@ -41,11 +41,35 @@ impl<'de> Deserialize<'de> for AEADMethod {
 }
 
 impl AEADMethod {
-    fn get_algorithm(self) -> &'static Algorithm {
+    pub fn get_algorithm(self) -> &'static Algorithm {
         match self {
             AEADMethod::AES128GCM => &ring::aead::AES_128_GCM,
             AEADMethod::AES256GCM => &ring::aead::AES_256_GCM,
             AEADMethod::CHACHA20POLY1305 => &ring::aead::CHACHA20_POLY1305,
+        }
+    }
+
+    pub const fn salt_len(&self) -> usize {
+        match self {
+            AEADMethod::AES128GCM => 16,
+            AEADMethod::AES256GCM => 32,
+            AEADMethod::CHACHA20POLY1305 => 32,
+        }
+    }
+
+    pub const fn key_len(&self) -> usize {
+        match self {
+            AEADMethod::AES128GCM => 16,
+            AEADMethod::AES256GCM => 32,
+            AEADMethod::CHACHA20POLY1305 => 32,
+        }
+    }
+
+    pub const fn buffer_len(&self) -> usize {
+        match self {
+            AEADMethod::AES128GCM => 16 + 2 + 16,
+            AEADMethod::AES256GCM => 32 + 2 + 16,
+            AEADMethod::CHACHA20POLY1305 => 32 + 2 + 16,
         }
     }
 }

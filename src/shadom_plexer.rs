@@ -1,24 +1,28 @@
+use crate::crypto::AEADMethod;
+use crate::infra::InfraAlgorithm;
 use aead::{Aad, Nonce};
+use lru::LruCache;
 use ring::aead;
 use ring::{error, hkdf};
 use smol::io::{AsyncReadExt, AsyncWriteExt};
 use smol::net::IpAddr;
 use smol::{future, io, Async};
-use std::collections::HashMap;
 use std::net::TcpListener;
 use std::net::TcpStream;
+use std::ptr;
+
+struct ServerInfo {
+    addr: (IpAddr, u16),
+    method: AEADMethod,
+}
 
 struct Multiplexer {
     listener: Async<TcpListener>,
-    servers: HashMap<String, (IpAddr, u16)>, // password, server addr
+    servers_lru: LruCache<String, ServerInfo>, //password, ServerInfo
 }
 
-pub const CHACHA20_SALT_LEN: usize = 32;
-pub const CHACHA20_KEY_LEN: usize = 32;
-pub const CHACHA20_TAG_LEN: usize = 16;
-pub const LEN_LEN: usize = 2;
-pub const fn chacha20_buffer_len() -> usize {
-    (CHACHA20_SALT_LEN + LEN_LEN + CHACHA20_TAG_LEN) as usize
+pub const fn buffer_len() -> usize {
+    32 + 2 + 16 // enough for all the case
 }
 
 pub const SUBKEY_INFO: &'static [u8] = b"ss-subkey";
@@ -34,33 +38,53 @@ async fn copy_steam(stream0: Async<TcpStream>, addr: (IpAddr, u16), buf: &[u8]) 
     Ok(())
 }
 
+fn match_server(password: &String, buf: &[u8; buffer_len()], method: AEADMethod) -> bool {
+    let salt = hkdf::Salt::new(
+        hkdf::HKDF_SHA1_FOR_LEGACY_USE_ONLY,
+        &buf[0..method.salt_len()],
+    );
+    let mut buf2 = buf.clone();
+    let prk = salt.extract(password.as_bytes());
+    let result = prk.expand(&[SUBKEY_INFO], My(method.key_len())).unwrap();
+    let mut sub_key_buf = [0u8; 32]; // enough for all the case
+    result.fill(&mut sub_key_buf).unwrap();
+    let open_res = open_with_key(
+        &aead::CHACHA20_POLY1305,
+        &sub_key_buf[0..method.key_len()],
+        &mut buf2[method.salt_len()..method.buffer_len()],
+    );
+    open_res.is_ok()
+}
+
 impl Multiplexer {
-    pub async fn accept(&self) -> io::Result<()> {
-        let (mut stream, _) = self.listener.accept().await?;
-        let mut buf = [0u8; chacha20_buffer_len()];
-        stream.read_exact(&mut buf).await?;
-        let mut buf2 = buf.clone();
-        for (password, addr) in &self.servers {
-            let salt = hkdf::Salt::new(
-                hkdf::HKDF_SHA1_FOR_LEGACY_USE_ONLY,
-                &buf[0..CHACHA20_SALT_LEN],
-            );
-            let prk = salt.extract(password.as_bytes());
-            let result = prk.expand(&[SUBKEY_INFO], My(CHACHA20_KEY_LEN)).unwrap();
-            let mut sub_key_buf = [0u8; CHACHA20_KEY_LEN];
-            result.fill(&mut sub_key_buf).unwrap();
-            let open_res = open_with_key(
-                &aead::CHACHA20_POLY1305,
-                &sub_key_buf,
-                &mut buf2[CHACHA20_SALT_LEN..],
-            );
-            if open_res.is_ok() {
-                let stream = stream;
+    fn linear_scan(&self, buf: [u8; buffer_len()], stream: Async<TcpStream>) -> *const String {
+        for (password, info) in &self.servers_lru {
+            let open_res = match_server(password, &buf, info.method);
+            if open_res {
                 let buf = buf;
-                let addr = addr.clone();
+                let addr = info.addr.clone();
                 smol::spawn(async move { copy_steam(stream, addr, &buf).await }).detach();
-                return Ok(());
+                return password;
             }
+        }
+        ptr::null()
+    }
+
+    pub async fn accept(&mut self, infra_algo: InfraAlgorithm) -> io::Result<()> {
+        let (mut stream, _) = self.listener.accept().await?;
+        let mut buf = [0u8; buffer_len()]; // enough for all the case
+        stream.read_exact(&mut buf).await?;
+        match infra_algo {
+            InfraAlgorithm::LinearScan => {
+                self.linear_scan(buf, stream);
+            }
+            InfraAlgorithm::LinearScanWithLRU => {
+                let hit_pass = self.linear_scan(buf, stream);
+                if !hit_pass.is_null() {
+                    self.servers_lru.get(unsafe { &*hit_pass }); // change lru list, we don't want to copy password.
+                }
+            }
+            InfraAlgorithm::ConcurrentScan => {}
         }
         Ok(())
     }
