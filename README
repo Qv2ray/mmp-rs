@@ -1,0 +1,13 @@
+Shadowsocks AEAD Multiplexer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This utility allows you to use single port on your NAT machine, to proxy 
+through multiple Shadowsocks AEAD upstreams, as long as the encryption and
+password is different for every single choice.
+
+Authors: 
+ - DuckSoft
+ - DuckVador
+
+Special Thanks:
+ - Qv2ray Developer Community
+ 
