@@ -40,8 +40,8 @@ impl<'de> Deserialize<'de> for AEADMethod {
     }
 }
 
-impl Into<&ring::aead::Algorithm> for AEADMethod {
-    fn into(self) -> &'static Algorithm {
+impl AEADMethod {
+    fn get_algorithm(self) -> &'static Algorithm {
         match self {
             AEADMethod::AES128GCM => &ring::aead::AES_128_GCM,
             AEADMethod::AES256GCM => &ring::aead::AES_256_GCM,
