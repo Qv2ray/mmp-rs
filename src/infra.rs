@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
 pub enum InfraAlgorithm {
@@ -9,4 +9,3 @@ pub enum InfraAlgorithm {
     #[serde(rename = "concurrent-scan")]
     ConcurrentScan,
 }
-

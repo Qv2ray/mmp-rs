@@ -12,13 +12,20 @@ use crate::infra::InfraAlgorithm;
 pub struct Config {
     pub listen: String,
     pub algorithm: AlgorithmConfig,
+    pub fallback: Option<FallbackConfig>,
     pub servers: BTreeMap<String, ServerConfig>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AlgorithmConfig {
     pub name: InfraAlgorithm,
-    pub options: Option<BTreeMap<String, i32>>
+    pub options: Option<BTreeMap<String, i32>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FallbackConfig {
+    pub address: String,
+    pub delay: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

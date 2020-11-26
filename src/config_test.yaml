@@ -4,6 +4,9 @@
 listen: 127.0.0.1:1080
 algorithm:
   name: linear-scan
+fallback:
+  address: gcc-11.com:12345
+  delay: 3000
 servers:
   duck-vultr-jp1:
     address: jp1.ducksoft.example.com:1145

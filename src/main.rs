@@ -1,25 +1,26 @@
+use crate::config::Config;
 use clap::{App, Arg};
 use std::fs::File;
-use crate::config::Config;
 
 mod config;
 mod crypto;
-mod shadom_plexer;
 mod infra;
+mod shadom_plexer;
 
 fn main() {
-    let matches =
-        App::new("Shadomplexer")
-            .version("0.1")
-            .author("DuckSoft & DuckVador")
-            .about("one port for all")
-            .arg(Arg::with_name("config")
+    let matches = App::new("Shadomplexer")
+        .version("0.1")
+        .author("DuckSoft & DuckVador")
+        .about("one port for all")
+        .arg(
+            Arg::with_name("config")
                 .short("c")
                 .long("config")
                 .value_name("FILE")
                 .help("load config from YAML file")
-                .takes_value(true))
-            .get_matches();
+                .takes_value(true),
+        )
+        .get_matches();
 
     let config_path = matches.value_of("config").unwrap_or("config.yaml");
     let file = File::open(config_path)
