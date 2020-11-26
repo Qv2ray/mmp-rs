@@ -1,0 +1,76 @@
+$schema: http://json-schema.org/draft-07/schema
+description: Shadomplexer Configuration File
+type: object
+required:
+  - listen
+  - algorithm
+  - servers
+properties:
+  listen:
+    type: string
+    description: Listen address
+    examples:
+      - "0.0.0.0:114"
+      - "127.0.0.1:514"
+      - "[::]:1919"
+      - "[::1]:810"
+  fallback:
+    type: object
+    description: Fallback options
+    required:
+      - address
+      - delay
+    properties:
+      address:
+        type: string
+        description: Fallback address
+        examples:
+          - "gcc-11.com:80"
+      delay:
+        type: integer
+        description: Random delay before falling back
+        minimum: 0
+        default: 3000
+  algorithm:
+    type: object
+    description: Multiplex algorithm
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        description: Name of the algorithm used
+        enum:
+          - linear-scan
+          - linear-scan-with-lru
+          - concurrent-scan
+      options:
+        type: object
+        description: Algorithm options
+        items:
+          type: integer
+  servers:
+    type: object
+    description: Upstream servers
+    items:
+      type: object
+      required:
+        - address
+        - method
+        - passwords
+      properties:
+        address:
+          type: string
+          description: Server address
+        method:
+          type: string
+          description: Encryption method
+          enum:
+            - aes-128-gcm
+            - aes-256-gcm
+            - chacha20-ietf-poly1305
+        passwords:
+          type: array
+          description: Client passwords
+          items:
+            type: string

@@ -1,6 +1,7 @@
 # example configuration file.
 # used for testing.
 
+$schema: config.schema.yaml
 listen: 127.0.0.1:1080
 algorithm:
   name: linear-scan
