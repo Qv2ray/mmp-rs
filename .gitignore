@@ -1,1 +1,6 @@
+# Compiled Targets
 /target
+
+# CLion Trash
+/.idea/
+*.iml
