@@ -10,22 +10,22 @@ use crate::infra::InfraAlgorithm;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
-    listen: String,
-    algorithm: AlgorithmConfig,
-    servers: BTreeMap<String, ServerConfig>,
+    pub listen: String,
+    pub algorithm: AlgorithmConfig,
+    pub servers: BTreeMap<String, ServerConfig>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AlgorithmConfig {
-    name: InfraAlgorithm,
-    options: Option<BTreeMap<String, i32>>
+    pub name: InfraAlgorithm,
+    pub options: Option<BTreeMap<String, i32>>
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ServerConfig {
-    address: String,
-    method: AEADMethod,
-    passwords: Vec<String>,
+    pub address: String,
+    pub method: AEADMethod,
+    pub passwords: Vec<String>,
 }
 
 #[cfg(test)]
