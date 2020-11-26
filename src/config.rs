@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
-use smol::net::SocketAddr;
 use std::collections::BTreeMap;
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
