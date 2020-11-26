@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use smol::net::SocketAddr;
 use std::collections::BTreeMap;
 
@@ -21,8 +21,7 @@ mod test {
 
     #[test]
     fn test_deserialize_config() {
-        let config: Config = serde_yaml
-            ::from_str(include_str!("config_test.yaml"))
+        let config: Config = serde_yaml::from_str(include_str!("config_test.yaml"))
             .expect("failed to parse test config file");
         println!("Config: {:?}", config);
     }

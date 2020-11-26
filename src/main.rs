@@ -1,5 +1,5 @@
-mod shadom_plexer;
 mod config;
+mod shadom_plexer;
 
 fn main() {
     println!("Hello, world!");
