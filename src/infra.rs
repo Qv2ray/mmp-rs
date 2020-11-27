@@ -1,11 +1,11 @@
-use serde::{Deserialize, Serialize};
-use smol::net::{SocketAddr};
-use smol::Async;
-use std::net::{TcpStream,TcpListener};
 use crate::config::Config;
 use crate::infra_linear_scan::LinearScanImpl;
-use std::str::FromStr;
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+use smol::net::SocketAddr;
+use smol::Async;
+use std::net::{TcpListener, TcpStream};
+use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
 pub enum InfraAlgorithm {
@@ -28,8 +28,14 @@ impl InfraAlgorithm {
 
 #[async_trait]
 pub trait InfraImplTrait {
-    fn from_config(config: &Config) -> Self where Self: Sized;
-    async fn handle_tcp(&self, mut stream: Async<TcpStream>, client_address: SocketAddr) -> smol::io::Result<()>;
+    fn from_config(config: &Config) -> Self
+    where
+        Self: Sized;
+    async fn handle_tcp(
+        &self,
+        mut stream: Async<TcpStream>,
+        client_address: SocketAddr,
+    ) -> smol::io::Result<()>;
 }
 
 pub struct Server {
@@ -39,9 +45,14 @@ pub struct Server {
 
 impl Server {
     pub fn new(config: Config) -> Server {
-        let listener = Async::<TcpListener>::bind(SocketAddr::from_str(config.listen.as_str()).unwrap()).unwrap();
+        let listener =
+            Async::<TcpListener>::bind(SocketAddr::from_str(config.listen.as_str()).unwrap())
+                .unwrap();
         let infra_impl = config.algorithm.name.new_impl(&config);
-        Server { listener, infra_impl }
+        Server {
+            listener,
+            infra_impl,
+        }
     }
 
     pub async fn run(&self) -> smol::io::Result<()> {

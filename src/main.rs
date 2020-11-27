@@ -1,14 +1,14 @@
 use crate::config::Config;
+use crate::infra::Server;
+use crate::shadom_plexer::Multiplexer;
 use clap::{App, Arg};
 use std::fs::File;
-use crate::shadom_plexer::Multiplexer;
-use crate::infra::Server;
 
 mod config;
 mod crypto;
 mod infra;
-mod shadom_plexer;
 mod infra_linear_scan;
+mod shadom_plexer;
 
 fn main() {
     let matches = App::new("Shadomplexer")
@@ -31,7 +31,5 @@ fn main() {
     let config: Config = serde_yaml::from_reader(file)
         .expect(format!("failed to parse config file {}", config_path).as_str());
     let server = Server::new(config);
-    smol::block_on(async {
-        server.run().await.unwrap()
-    });
+    smol::block_on(async { server.run().await.unwrap() });
 }
