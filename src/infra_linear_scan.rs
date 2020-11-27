@@ -1,8 +1,9 @@
 use crate::config::Config;
 use crate::crypto::AEADMethod;
 use crate::infra::InfraImplTrait;
-use crate::util::{match_server, relay};
+use crate::util::{classic_bytes_to_key, match_server, relay};
 use async_trait::async_trait;
+use bytes::Bytes;
 use smol::io::AsyncReadExt;
 use smol::net::SocketAddr;
 use smol::Async;
@@ -10,19 +11,18 @@ use std::net::TcpStream;
 use std::str::FromStr;
 
 pub struct LinearScanImpl {
-    servers: Vec<(AEADMethod, String, SocketAddr)>,
+    servers: Vec<(AEADMethod, Bytes, SocketAddr)>,
 }
 
 #[async_trait]
 impl InfraImplTrait for LinearScanImpl {
     fn from_config(config: &Config) -> LinearScanImpl {
-        let mut servers = Vec::<(AEADMethod, String, SocketAddr)>::new();
+        let mut servers = Vec::new();
         for (_server_name, server_config) in &config.servers {
             for password in &server_config.passwords {
-                let digest = md5::compute(password).0;
                 servers.push((
                     server_config.method,
-                    String::from_utf8_lossy(&digest).parse().unwrap(),
+                    classic_bytes_to_key(server_config.method.key_len(), password.as_bytes()),
                     SocketAddr::from_str(server_config.address.as_str()).unwrap(),
                 ))
             }

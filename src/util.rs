@@ -1,4 +1,6 @@
 use crate::crypto::AEADMethod;
+use bytes::{BufMut, Bytes, BytesMut};
+use md5::{Digest, Md5};
 use ring::aead::Aad;
 use ring::aead::Nonce;
 use ring::{aead, error, hkdf};
@@ -8,6 +10,30 @@ use std::net::SocketAddr;
 use std::net::TcpStream;
 
 const SUBKEY_INFO: &'static [u8] = b"ss-subkey";
+
+pub fn classic_bytes_to_key(key_len: usize, key: &[u8]) -> Bytes {
+    // key derivation by MD5 hash
+
+    let digest_len = Md5::output_size();
+
+    let mut result = BytesMut::with_capacity((key_len + digest_len - 1) / digest_len);
+    let mut m = None;
+
+    let mut d = Md5::new();
+    while result.len() < key_len {
+        if let Some(ref rm) = m {
+            d.input(rm);
+        }
+        d.input(key);
+        let digest = d.result_reset();
+        result.put(&*digest);
+
+        m = Some(digest);
+    }
+
+    result.truncate(key_len);
+    result.freeze()
+}
 
 pub(crate) const fn buffer_len() -> usize {
     32 + 2 + 16 // enough for all the case
@@ -28,17 +54,13 @@ pub(crate) async fn relay(
     Ok(())
 }
 
-pub(crate) fn match_server(
-    password: &String,
-    buf: &[u8; buffer_len()],
-    method: AEADMethod,
-) -> bool {
+pub(crate) fn match_server(password: &Bytes, buf: &[u8; buffer_len()], method: AEADMethod) -> bool {
     let salt = hkdf::Salt::new(
         hkdf::HKDF_SHA1_FOR_LEGACY_USE_ONLY,
         &buf[0..method.salt_len()],
     );
     let mut buf2 = buf.clone();
-    let prk = salt.extract(password.as_bytes());
+    let prk = salt.extract(password.as_ref());
     let result = prk.expand(&[SUBKEY_INFO], My(method.key_len())).unwrap();
     let mut sub_key_buf = [0u8; 32]; // enough for all the case
     result.fill(&mut sub_key_buf).unwrap();
