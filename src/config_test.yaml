@@ -15,12 +15,6 @@ servers:
     passwords:
       - 94866f9d-8f44-95cd-4541-c23495c62ccd
       - dd470899-6b11-aee7-d969-6916928709c6
-  iseki-linode-sg1:
-    address: sg1.iseki.example.com:1419
-    method: aes-128-gcm
-    passwords:
-      - 83236afa-84c3-0e61-3b83-e8656674edad
-      - 3429ed71-984d-4ad3-7373-20cf6bd10324
   mzz-xtom-wa1:
     address: wa1.mzz.example.com:19810
     method: aes-256-gcm

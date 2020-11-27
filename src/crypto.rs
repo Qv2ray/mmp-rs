@@ -1,4 +1,3 @@
-use ring::aead::Algorithm;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -41,14 +40,6 @@ impl<'de> Deserialize<'de> for AEADMethod {
 }
 
 impl AEADMethod {
-    pub fn get_algorithm(self) -> &'static Algorithm {
-        match self {
-            AEADMethod::AES128GCM => &ring::aead::AES_128_GCM,
-            AEADMethod::AES256GCM => &ring::aead::AES_256_GCM,
-            AEADMethod::CHACHA20POLY1305 => &ring::aead::CHACHA20_POLY1305,
-        }
-    }
-
     pub const fn salt_len(&self) -> usize {
         match self {
             AEADMethod::AES128GCM => 16,
