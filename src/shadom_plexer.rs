@@ -16,7 +16,7 @@ struct ServerInfo {
     method: AEADMethod,
 }
 
-struct Multiplexer {
+pub struct Multiplexer {
     listener: Async<TcpListener>,
     servers_lru: LruCache<String, ServerInfo>, //password, ServerInfo
 }
@@ -38,7 +38,7 @@ async fn copy_steam(stream0: Async<TcpStream>, addr: (IpAddr, u16), buf: &[u8]) 
     Ok(())
 }
 
-fn match_server(password: &String, buf: &[u8; buffer_len()], method: AEADMethod) -> bool {
+pub fn match_server(password: &String, buf: &[u8; buffer_len()], method: AEADMethod) -> bool {
     let salt = hkdf::Salt::new(
         hkdf::HKDF_SHA1_FOR_LEGACY_USE_ONLY,
         &buf[0..method.salt_len()],
