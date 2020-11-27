@@ -59,8 +59,8 @@ impl Server {
 
     pub async fn run(&mut self) -> smol::io::Result<()> {
         loop {
-            let (stream, address) = self.listener.accept().await?;
-            self.infra_impl.handle_tcp(stream, address).await?;
+            let (stream, address) = self.listener.accept().await.unwrap();
+            self.infra_impl.handle_tcp(stream, address).await;
         }
     }
 }
