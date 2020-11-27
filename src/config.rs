@@ -34,7 +34,6 @@ pub struct ServerConfig {
 
 #[cfg(test)]
 mod test {
-    use serde::Deserialize;
 
     use crate::config::Config;
 

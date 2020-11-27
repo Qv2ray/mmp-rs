@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::infra_linear_scan::LinearScanImpl;
+use crate::infra_lru_scan::LRUScanImpl;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use smol::net::SocketAddr;
@@ -21,6 +22,7 @@ impl InfraAlgorithm {
     fn new_impl(&self, config: &Config) -> Box<dyn InfraImplTrait> {
         match self {
             InfraAlgorithm::LinearScan => Box::new(LinearScanImpl::from_config(&config)),
+            InfraAlgorithm::LinearScanWithLRU => Box::new(LRUScanImpl::from_config(&config)),
             _ => panic!("shit"),
         }
     }
@@ -32,7 +34,7 @@ pub trait InfraImplTrait {
     where
         Self: Sized;
     async fn handle_tcp(
-        &self,
+        &mut self,
         mut stream: Async<TcpStream>,
         client_address: SocketAddr,
     ) -> smol::io::Result<()>;
@@ -55,11 +57,10 @@ impl Server {
         }
     }
 
-    pub async fn run(&self) -> smol::io::Result<()> {
+    pub async fn run(&mut self) -> smol::io::Result<()> {
         loop {
             let (stream, address) = self.listener.accept().await?;
             self.infra_impl.handle_tcp(stream, address).await?;
         }
-        Ok(())
     }
 }

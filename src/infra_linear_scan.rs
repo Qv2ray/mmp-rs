@@ -1,27 +1,16 @@
 use crate::config::Config;
 use crate::crypto::AEADMethod;
 use crate::infra::InfraImplTrait;
-use crate::shadom_plexer::match_server;
+use crate::util::{match_server, relay};
 use async_trait::async_trait;
-use smol::io::{AsyncReadExt, AsyncWriteExt};
+use smol::io::AsyncReadExt;
 use smol::net::SocketAddr;
-use smol::{future, io, Async};
+use smol::Async;
 use std::net::TcpStream;
 use std::str::FromStr;
 
 pub struct LinearScanImpl {
     servers: Vec<(AEADMethod, String, SocketAddr)>,
-}
-
-async fn relay(stream0: Async<TcpStream>, addr: SocketAddr, buf: &[u8]) -> io::Result<()> {
-    let mut stream1 = Async::<TcpStream>::connect(addr).await?;
-    stream1.write(buf).await?;
-    future::try_zip(
-        io::copy(&stream0, &mut &stream1),
-        io::copy(&stream1, &mut &stream0),
-    )
-    .await?;
-    Ok(())
 }
 
 #[async_trait]
@@ -30,9 +19,10 @@ impl InfraImplTrait for LinearScanImpl {
         let mut servers = Vec::<(AEADMethod, String, SocketAddr)>::new();
         for (_server_name, server_config) in &config.servers {
             for password in &server_config.passwords {
+                let digest = md5::compute(password).0;
                 servers.push((
                     server_config.method,
-                    password.clone(),
+                    String::from_utf8_lossy(&digest).parse().unwrap(),
                     SocketAddr::from_str(server_config.address.as_str()).unwrap(),
                 ))
             }
@@ -42,7 +32,7 @@ impl InfraImplTrait for LinearScanImpl {
     }
 
     async fn handle_tcp(
-        &self,
+        &mut self,
         mut stream: Async<TcpStream>,
         _client_address: SocketAddr,
     ) -> smol::io::Result<()> {

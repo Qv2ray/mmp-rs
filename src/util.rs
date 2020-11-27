@@ -1,33 +1,23 @@
 use crate::crypto::AEADMethod;
-use crate::infra::InfraAlgorithm;
-use aead::{Aad, Nonce};
-use lru::LruCache;
-use ring::aead;
-use ring::{error, hkdf};
-use smol::io::{AsyncReadExt, AsyncWriteExt};
-use smol::net::IpAddr;
+use ring::aead::Aad;
+use ring::aead::Nonce;
+use ring::{aead, error, hkdf};
+use smol::io::AsyncWriteExt;
 use smol::{future, io, Async};
-use std::net::TcpListener;
+use std::net::SocketAddr;
 use std::net::TcpStream;
-use std::ptr;
 
-struct ServerInfo {
-    addr: (IpAddr, u16),
-    method: AEADMethod,
-}
+const SUBKEY_INFO: &'static [u8] = b"ss-subkey";
 
-pub struct Multiplexer {
-    listener: Async<TcpListener>,
-    servers_lru: LruCache<String, ServerInfo>, //password, ServerInfo
-}
-
-pub const fn buffer_len() -> usize {
+pub(crate) const fn buffer_len() -> usize {
     32 + 2 + 16 // enough for all the case
 }
 
-pub const SUBKEY_INFO: &'static [u8] = b"ss-subkey";
-
-async fn copy_steam(stream0: Async<TcpStream>, addr: (IpAddr, u16), buf: &[u8]) -> io::Result<()> {
+pub(crate) async fn relay(
+    stream0: Async<TcpStream>,
+    addr: SocketAddr,
+    buf: &[u8],
+) -> io::Result<()> {
     let mut stream1 = Async::<TcpStream>::connect(addr).await?;
     stream1.write(buf).await?;
     future::try_zip(
@@ -38,7 +28,11 @@ async fn copy_steam(stream0: Async<TcpStream>, addr: (IpAddr, u16), buf: &[u8]) 
     Ok(())
 }
 
-pub fn match_server(password: &String, buf: &[u8; buffer_len()], method: AEADMethod) -> bool {
+pub(crate) fn match_server(
+    password: &String,
+    buf: &[u8; buffer_len()],
+    method: AEADMethod,
+) -> bool {
     let salt = hkdf::Salt::new(
         hkdf::HKDF_SHA1_FOR_LEGACY_USE_ONLY,
         &buf[0..method.salt_len()],
@@ -54,40 +48,6 @@ pub fn match_server(password: &String, buf: &[u8; buffer_len()], method: AEADMet
         &mut buf2[method.salt_len()..method.buffer_len()],
     );
     open_res.is_ok()
-}
-
-impl Multiplexer {
-    fn linear_scan(&self, buf: [u8; buffer_len()], stream: Async<TcpStream>) -> *const String {
-        for (password, info) in &self.servers_lru {
-            let open_res = match_server(password, &buf, info.method);
-            if open_res {
-                let buf = buf;
-                let addr = info.addr.clone();
-                smol::spawn(async move { copy_steam(stream, addr, &buf).await }).detach();
-                return password;
-            }
-        }
-        ptr::null()
-    }
-
-    pub async fn accept(&mut self, infra_algo: InfraAlgorithm) -> io::Result<()> {
-        let (mut stream, _) = self.listener.accept().await?;
-        let mut buf = [0u8; buffer_len()]; // enough for all the case
-        stream.read_exact(&mut buf).await?;
-        match infra_algo {
-            InfraAlgorithm::LinearScan => {
-                self.linear_scan(buf, stream);
-            }
-            InfraAlgorithm::LinearScanWithLRU => {
-                let hit_pass = self.linear_scan(buf, stream);
-                if !hit_pass.is_null() {
-                    self.servers_lru.get(unsafe { &*hit_pass }); // change lru list, we don't want to copy password.
-                }
-            }
-            InfraAlgorithm::ConcurrentScan => {}
-        }
-        Ok(())
-    }
 }
 
 #[derive(Debug, PartialEq)]
