@@ -1,6 +1,8 @@
 Shadowsocks AEAD Multiplexer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+> 这破 NAT 🐔怎么就俩端口，mmp，上！
+
 This utility allows you to use single port on your NAT machine, to proxy 
 through multiple Shadowsocks AEAD upstreams, as long as the encryption and
 password is different for every single choice.
